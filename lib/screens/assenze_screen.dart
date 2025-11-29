@@ -249,7 +249,7 @@ class _AssenzeScreenState extends State<AssenzeScreen> {
     return RefreshIndicator(
       onRefresh: _loadAssenze,
       child: ListView.builder(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
         itemCount: _assenzeFiltered.length,
         itemBuilder: (context, index) {
           final assenza = _assenzeFiltered[index];

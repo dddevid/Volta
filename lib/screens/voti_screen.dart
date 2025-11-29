@@ -104,7 +104,7 @@ class _VotiScreenState extends State<VotiScreen> {
     return RefreshIndicator(
       onRefresh: _loadVoti,
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
         children: [
           // Summary Card with Chart
           Container(

@@ -8,7 +8,7 @@
 PRODUCT_NAME = nuvolareskin
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.example.nuvolareskin
+PRODUCT_BUNDLE_IDENTIFIER = com.devid.nuvolav2
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2025 com.example. All rights reserved.

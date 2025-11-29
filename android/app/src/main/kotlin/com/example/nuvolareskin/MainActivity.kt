@@ -1,4 +1,4 @@
-package com.example.nuvolareskin
+package com.devid.nuvolav2
 
 import io.flutter.embedding.android.FlutterActivity
 
