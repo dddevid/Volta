@@ -1,0 +1,50 @@
+/// Modello per un compito
+class Compito {
+  final int id;
+  final String materia;
+  final DateTime dataAssegnazione;
+  final DateTime dataConsegna;
+  final String descrizione;
+  final String? docente;
+  final List<String>? allegati;
+  bool completato; // Solo locale, non sincronizzato
+
+  Compito({
+    required this.id,
+    required this.materia,
+    required this.dataAssegnazione,
+    required this.dataConsegna,
+    required this.descrizione,
+    this.docente,
+    this.allegati,
+    this.completato = false,
+  });
+
+  factory Compito.fromJson(Map<String, dynamic> json) {
+    return Compito(
+      id: json['id'] as int,
+      materia: json['materia'] as String,
+      dataAssegnazione: DateTime.parse(json['dataAssegnazione'] as String),
+      dataConsegna: DateTime.parse(json['dataConsegna'] as String),
+      descrizione: json['descrizione'] as String,
+      docente: json['docente'] as String?,
+      allegati: json['allegati'] != null
+          ? List<String>.from(json['allegati'] as List)
+          : null,
+      completato: json['completato'] as bool? ?? false,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'materia': materia,
+      'dataAssegnazione': dataAssegnazione.toIso8601String(),
+      'dataConsegna': dataConsegna.toIso8601String(),
+      'descrizione': descrizione,
+      'docente': docente,
+      'allegati': allegati,
+      'completato': completato,
+    };
+  }
+}
