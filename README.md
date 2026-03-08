@@ -173,7 +173,6 @@ lib/
 - L'app supporta un solo studente per account (il primo restituito dall'API).
 - La marcatura dei compiti come completati è **solo locale** e non viene sincronizzata con Nuvola.
 - Il modulo `flutter_displaymode` funziona solo su Android; su iOS viene ignorato silenziosamente.
-- La connessione wireless al dispositivo iOS su reti instabili può causare disconnessioni durante il debug (usare USB per maggiore stabilità).
 - Alcune sezioni dell'API Nuvola (pagamenti, eventi classe, argomenti lezione) sono definite nelle costanti ma non ancora esposte nell'interfaccia.
 
 ---
@@ -242,33 +241,6 @@ Le credenziali vengono salvate in modo sicuro utilizzando `flutter_secure_storag
 
 Le credenziali **non vengono mai inviate** a server di terze parti, solo agli endpoint ufficiali di Nuvola.
 
-## Struttura del Progetto
-
-```
-lib/
-├── core/
-│   ├── api/
-│   │   ├── api_client.dart           # Client HTTP con Dio
-│   │   ├── auth_service.dart         # Servizio autenticazione
-│   │   └── nuvola_api_service.dart   # Servizio API Nuvola
-│   └── constants.dart                # Costanti applicazione
-├── models/
-│   ├── alunno.dart                   # Modello studente
-│   ├── voto.dart                     # Modello voto
-│   ├── assenza.dart                  # Modello assenza
-│   ├── nota.dart                     # Modello nota
-│   └── compito.dart                  # Modello compito
-├── providers/
-│   └── auth_provider.dart            # Provider autenticazione
-├── screens/
-│   ├── login_screen.dart             # Schermata login
-│   ├── home_screen.dart              # Dashboard
-│   ├── voti_screen.dart              # Voti
-│   ├── assenze_screen.dart           # Assenze
-│   └── compiti_screen.dart           # Compiti
-└── main.dart                         # Entry point
-```
-
 ## API Endpoints Utilizzati
 
 - `POST /login_check` - Autenticazione
@@ -287,18 +259,7 @@ lib/
 - **flutter_secure_storage** - Archiviazione sicura credenziali
 - **Material Design 3** - Design system
 
-## Contribuire
-
-Contributi, issue e feature request sono benvenuti!
-
-## Licenza
-
-Questo progetto è fornito "così com'è" senza garanzie di alcun tipo.
-
-## Disclaimer Legale
-
-Questo client non è affiliato, autorizzato, mantenuto, sponsorizzato o endorsato da Madisoft o Nuvola. Tutti i nomi di prodotti, loghi e marchi sono proprietà dei rispettivi proprietari. L'uso di questo client è a proprio rischio e pericolo.
-
 ## Supporto
 
 Per domande o problemi, apri una issue su GitHub.
+
