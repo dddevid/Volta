@@ -40,7 +40,6 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
     final authProvider = context.read<AuthProvider>();
     _apiService = NuvolaApiService(authProvider.authService.apiClient);
 
-    // Breathtaking animations
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 1200),
       vsync: this,
@@ -84,7 +83,6 @@ class _SubjectDetailScreenState extends State<SubjectDetailScreen>
           _isLoading = false;
         });
 
-        // Start animations
         _fadeController.forward();
         _slideController.forward();
       }

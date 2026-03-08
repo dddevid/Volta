@@ -3,7 +3,6 @@ import 'package:dio_cookie_manager/dio_cookie_manager.dart';
 import 'package:cookie_jar/cookie_jar.dart';
 import '../constants.dart';
 
-/// Client API con gestione automatica di cookies e interceptors
 class ApiClient {
   late final Dio _dio;
   final CookieJar _cookieJar = CookieJar();
@@ -24,10 +23,8 @@ class ApiClient {
       ),
     );
 
-    // Add cookie manager
     _dio.interceptors.add(CookieManager(_cookieJar));
 
-    // Add request interceptor for JWT token
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
@@ -37,10 +34,7 @@ class ApiClient {
           return handler.next(options);
         },
         onError: (error, handler) {
-          // Handle 401 unauthorized (token expired)
           if (error.response?.statusCode == 401) {
-            // Token expired, need to re-authenticate
-            // This will be handled by AuthService
           }
           return handler.next(error);
         },
@@ -48,21 +42,17 @@ class ApiClient {
     );
   }
 
-  /// Set JWT token for authenticated requests
   void setJwtToken(String? token) {
     _jwtToken = token;
   }
 
-  /// Get current JWT token
   String? get jwtToken => _jwtToken;
 
-  /// Clear cookies and token
   void clearAuth() {
     _jwtToken = null;
     _cookieJar.deleteAll();
   }
 
-  /// GET request
   Future<Response> get(
     String path, {
     Map<String, dynamic>? queryParameters,
@@ -79,7 +69,6 @@ class ApiClient {
     }
   }
 
-  /// POST request
   Future<Response> post(
     String path, {
     dynamic data,
@@ -98,7 +87,6 @@ class ApiClient {
     }
   }
 
-  /// PUT request
   Future<Response> put(
     String path, {
     dynamic data,
@@ -117,7 +105,6 @@ class ApiClient {
     }
   }
 
-  /// DELETE request
   Future<Response> delete(
     String path, {
     dynamic data,

@@ -28,11 +28,11 @@ class UiUtils {
     if (numericVoto == null) return Colors.grey;
 
     if (numericVoto >= 7) {
-      return const Color(0xFF4CAF50); // Green
+      return const Color(0xFF4CAF50);
     } else if (numericVoto >= 6) {
-      return const Color(0xFFFFC107); // Amber/Yellow
+      return const Color(0xFFFFC107);
     } else {
-      return const Color(0xFFF44336); // Red
+      return const Color(0xFFF44336);
     }
   }
 }

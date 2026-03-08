@@ -6,9 +6,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../providers/auth_provider.dart';
 import '../core/api/nuvola_api_service.dart';
 import '../models/compito.dart';
-import '../core/utils/ui_utils.dart';
 
-/// Schermata compiti moderna
 class CompitiScreen extends StatefulWidget {
   const CompitiScreen({super.key});
 
@@ -23,7 +21,7 @@ class _CompitiScreenState extends State<CompitiScreen>
   List<Compito> _compiti = [];
   DateTime _selectedDate = DateTime.now();
   DateTime _focusedDate = DateTime.now();
-  String _filterType = 'all'; // 'all', 'pending', 'completed'
+  String _filterType = 'all';
   Set<String> _completedCompitiIds = {};
 
   late AnimationController _statsAnimationController;
@@ -79,17 +77,16 @@ class _CompitiScreenState extends State<CompitiScreen>
       if (student != null) {
         final compiti = await _apiService.getCompiti(student.id, _selectedDate);
 
-        // Apply saved completion status and validate dates
         for (var compito in compiti) {
           final isPast = compito.dataConsegna
               .isBefore(DateTime.now().subtract(const Duration(days: 1)));
 
           if (isPast) {
-            // Remove from completed if date has passed
+
             _completedCompitiIds.remove(compito.id.toString());
             compito.completato = false;
           } else {
-            // Restore completion status
+
             compito.completato =
                 _completedCompitiIds.contains(compito.id.toString());
           }
@@ -173,13 +170,16 @@ class _CompitiScreenState extends State<CompitiScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        _buildStatsPanel(),
-        _buildCalendar(),
-        _buildFilterChips(),
-        Expanded(child: _buildContent()),
-      ],
+    return SafeArea(
+      bottom: false,
+      child: Column(
+        children: [
+          _buildStatsPanel(),
+          _buildCalendar(),
+          _buildFilterChips(),
+          Expanded(child: _buildContent()),
+        ],
+      ),
     );
   }
 
@@ -328,7 +328,9 @@ class _CompitiScreenState extends State<CompitiScreen>
   }
 
   Widget _buildFilterChips() {
-    return Container(
+    return Material(
+      color: Colors.transparent,
+      child: Container(
       height: 60,
       margin: const EdgeInsets.symmetric(vertical: 12),
       child: ListView(
@@ -342,6 +344,7 @@ class _CompitiScreenState extends State<CompitiScreen>
           _buildFilterChip('Completati', 'completed', Icons.check_circle),
         ],
       ),
+    ),
     );
   }
 
@@ -428,7 +431,7 @@ class _CompitiScreenState extends State<CompitiScreen>
     return RefreshIndicator(
       onRefresh: _loadCompiti,
       child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+        padding: EdgeInsets.fromLTRB(16, 16, 16, 80 + MediaQuery.paddingOf(context).bottom),
         itemCount: filtered.length,
         itemBuilder: (context, index) {
           return TweenAnimationBuilder<double>(
@@ -633,7 +636,7 @@ class _CompitiScreenState extends State<CompitiScreen>
   }
 
   Color _getSubjectColor(String materia) {
-    // Simple hash-based color assignment
+
     final hash = materia.hashCode;
     final colors = [
       Colors.blue,

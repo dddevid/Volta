@@ -1,4 +1,3 @@
-/// Modello per un voto
 class Voto {
   final int id;
   final String materia;
@@ -24,7 +23,7 @@ class Voto {
     return Voto(
       id: json['id'] as int? ?? 0,
       materia: json['materia'] as String? ?? '',
-      // Nuvola API uses 'valutazione' for the grade value
+
       valore: json['valutazione'] as String? ?? json['valore'] as String? ?? '',
       tipologia: json['tipologia'] as String?,
       data: DateTime.parse(json['data'] as String).toLocal(),

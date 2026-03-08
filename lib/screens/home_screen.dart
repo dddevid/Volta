@@ -1,22 +1,18 @@
 import 'package:flutter/material.dart';
-import 'package:animated_bottom_navigation_bar/animated_bottom_navigation_bar.dart';
+import 'package:adaptive_platform_ui/adaptive_platform_ui.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import 'dart:math' as math;
 import '../providers/auth_provider.dart';
 import '../core/api/nuvola_api_service.dart';
 import '../models/voto.dart';
-import '../models/assenza.dart';
 import '../models/compito.dart';
 import '../models/materia_voti.dart';
 import 'voti_screen.dart';
 import 'assenze_screen.dart';
 import 'compiti_screen.dart';
 import 'login_screen.dart';
-import '../providers/theme_provider.dart';
 import '../core/utils/ui_utils.dart';
 
-/// Home screen principale con dashboard moderna
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -32,13 +28,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   List<Voto> _votiRecenti = [];
   List<Compito> _compitiProssimi = [];
   List<MateriaVoti> _materieVoti = [];
-  int _assenzeCount = 0;
-  int _notificheCount = 0;
   int _streak = 0;
   double? _mediaGenerale;
 
   late AnimationController _headerAnimationController;
+  late AnimationController _tabAnimationController;
   late Animation<double> _headerAnimation;
+  late Animation<double> _tabFadeAnimation;
 
   @override
   void initState() {
@@ -54,14 +50,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       parent: _headerAnimationController,
       curve: Curves.easeOutCubic,
     );
+    _tabAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 220),
+      vsync: this,
+    );
+    _tabFadeAnimation = CurvedAnimation(
+      parent: _tabAnimationController,
+      curve: Curves.easeInOut,
+    );
 
     _loadDashboardData();
     _headerAnimationController.forward();
+    _tabAnimationController.forward();
   }
 
   @override
   void dispose() {
     _headerAnimationController.dispose();
+    _tabAnimationController.dispose();
     super.dispose();
   }
 
@@ -95,7 +101,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               mediaMaterie.reduce((a, b) => a + b) / mediaMaterie.length;
         }
 
-        // Calcolo Streak
         int streak = 0;
         for (var voto in allVoti) {
           final val = UiUtils.parseVoto(voto.valore);
@@ -114,12 +119,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           _streak = streak;
           _votiRecenti = allVoti.take(5).toList();
           _compitiProssimi = (results[1] as List<Compito>).take(5).toList();
-          _assenzeCount = (results[2] as List<Assenza>).length;
-          _notificheCount = results[3] as int;
         });
       }
     } catch (e) {
-      // Silent error handling for dashboard
+
     } finally {
       setState(() => _isLoading = false);
     }
@@ -210,7 +213,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     return FadeTransition(
       opacity: _headerAnimation,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(20, 50, 20, 30),
+        padding: EdgeInsets.fromLTRB(20, MediaQuery.paddingOf(context).top + 20, 20, 30),
         decoration: BoxDecoration(
           gradient: LinearGradient(
             colors: [
@@ -379,58 +382,42 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Widget _buildQuickActionCard(
       String label, IconData icon, Color color, VoidCallback onTap) {
-    return TweenAnimationBuilder<double>(
-      duration: const Duration(milliseconds: 400),
-      curve: Curves.easeOutCubic,
-      tween: Tween(begin: 0.0, end: 1.0),
-      builder: (context, value, child) {
-        return Transform.scale(
-          scale: 0.8 + (0.2 * value),
-          child: Opacity(opacity: value, child: child),
-        );
-      },
-      child: Material(
-        color: Theme.of(context).cardTheme.color ??
-            Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(20),
-        child: InkWell(
-          onTap: onTap,
+    return _PressableCard(
+      onTap: onTap,
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surface,
           borderRadius: BorderRadius.circular(20),
-          child: Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(20),
-              boxShadow: [
-                BoxShadow(
-                  color: color.withOpacity(0.15),
-                  blurRadius: 12,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+          boxShadow: [
+            BoxShadow(
+              color: color.withOpacity(0.12),
+              blurRadius: 16,
+              offset: const Offset(0, 6),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: color.withOpacity(0.15),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(icon, color: color, size: 24),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  label,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Theme.of(context).textTheme.bodyMedium?.color,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+          ],
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.15),
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: color, size: 24),
             ),
-          ),
+            const SizedBox(height: 8),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: Theme.of(context).textTheme.bodyMedium?.color,
+              ),
+              textAlign: TextAlign.center,
+            ),
+          ],
         ),
       ),
     );
@@ -882,44 +869,102 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  void _switchTab(int index) {    if (_selectedIndex == index) return;
+    _tabAnimationController.reverse().then((_) {
+      if (mounted) {
+        setState(() => _selectedIndex = index);
+        _tabAnimationController.forward();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    final themeProvider = context.watch<ThemeProvider>();
+    return AdaptiveScaffold(
+      body: FadeTransition(
+        opacity: _tabFadeAnimation,
+        child: IndexedStack(
+          index: _selectedIndex,
+          children: [
+            _buildDashboard(),
+            const VotiScreen(),
+            const CompitiScreen(),
+            const AssenzeScreen(),
+          ],
+        ),
+      ),
+      bottomNavigationBar: AdaptiveBottomNavigationBar(
+        items: const [
+          AdaptiveNavigationDestination(
+            icon: 'house',
+            selectedIcon: 'house.fill',
+            label: 'Home',
+          ),
+          AdaptiveNavigationDestination(
+            icon: 'star',
+            selectedIcon: 'star.fill',
+            label: 'Voti',
+          ),
+          AdaptiveNavigationDestination(
+            icon: 'doc.text',
+            selectedIcon: 'doc.text.fill',
+            label: 'Compiti',
+          ),
+          AdaptiveNavigationDestination(
+            icon: 'calendar.badge.exclamationmark',
+            selectedIcon: 'calendar.badge.exclamationmark',
+            label: 'Assenze',
+          ),
+        ],
+        selectedIndex: _selectedIndex,
+        onTap: _switchTab,
+        selectedItemColor: Theme.of(context).colorScheme.primary,
+        unselectedItemColor: Theme.of(context).colorScheme.onSurface.withOpacity(0.5),
+      ),
+    );
+  }
+}
 
-    return Scaffold(
-      body: IndexedStack(
-        index: _selectedIndex,
-        children: [
-          _buildDashboard(),
-          const VotiScreen(),
-          const CompitiScreen(),
-          const AssenzeScreen(),
-        ],
-      ),
-      floatingActionButton: _selectedIndex == 0
-          ? null
-          : FloatingActionButton(
-              onPressed: () => setState(() => _selectedIndex = 0),
-              child: const Icon(Icons.home),
-            ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: AnimatedBottomNavigationBar(
-        icons: const [
-          Icons.home,
-          Icons.star,
-          Icons.assignment,
-          Icons.event_busy,
-        ],
-        activeIndex: _selectedIndex,
-        activeColor: Theme.of(context).colorScheme.primary,
-        inactiveColor: Colors.grey,
-        gapLocation: GapLocation.none,
-        notchSmoothness: NotchSmoothness.smoothEdge,
-        leftCornerRadius: 20,
-        rightCornerRadius: 20,
-        onTap: (index) => setState(() => _selectedIndex = index),
-        backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      ),
+class _PressableCard extends StatefulWidget {
+  final Widget child;
+  final VoidCallback onTap;
+
+  const _PressableCard({required this.child, required this.onTap});
+
+  @override
+  State<_PressableCard> createState() => _PressableCardState();
+}
+
+class _PressableCardState extends State<_PressableCard>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _ctrl;
+  late final Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 120));
+    _scale = Tween(begin: 1.0, end: 0.93).animate(
+        CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut));
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTapDown: (_) => _ctrl.forward(),
+      onTapUp: (_) {
+        _ctrl.reverse();
+        widget.onTap();
+      },
+      onTapCancel: () => _ctrl.reverse(),
+      child: ScaleTransition(scale: _scale, child: widget.child),
     );
   }
 }

@@ -3,12 +3,14 @@ import 'package:provider/provider.dart';
 import '../providers/auth_provider.dart';
 import '../core/api/nuvola_api_service.dart';
 import '../models/materia_voti.dart';
-import '../models/voto.dart';
+import '../models/frazione_temporale.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../core/utils/ui_utils.dart';
 import 'subject_detail_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../core/services/grade_streak_service.dart';
+import 'streak_level_up_dialog.dart';
 
-/// Schermata voti
 class VotiScreen extends StatefulWidget {
   const VotiScreen({super.key});
 
@@ -18,16 +20,30 @@ class VotiScreen extends StatefulWidget {
 
 class _VotiScreenState extends State<VotiScreen> {
   late final NuvolaApiService _apiService;
+  late final GradeStreakService _streakService;
   bool _isLoading = true;
   List<MateriaVoti> _materieVoti = [];
   int? _frazioneId;
+  int _currentStreak = 0;
+  List<FrazioneTemporale> _frazioni = [];
+  FrazioneTemporale? _selectedFrazione;
 
   @override
   void initState() {
     super.initState();
     final authProvider = context.read<AuthProvider>();
     _apiService = NuvolaApiService(authProvider.authService.apiClient);
+    _initStreakService();
     _loadVoti();
+  }
+
+  Future<void> _initStreakService() async {
+    final prefs = await SharedPreferences.getInstance();
+    _streakService = GradeStreakService(prefs);
+    if (mounted) {
+      final streak = await _streakService.getStreak();
+      setState(() => _currentStreak = streak);
+    }
   }
 
   Future<void> _loadVoti() async {
@@ -38,16 +54,43 @@ class _VotiScreenState extends State<VotiScreen> {
       final student = authProvider.currentStudent;
 
       if (student != null) {
-        // Get frazione temporale
-        final frazioni = await _apiService.getFrazioniTemporali(student.id);
-        if (frazioni.isNotEmpty) {
-          _frazioneId = frazioni.last['id'] as int;
+
+        if (_frazioni.isEmpty) {
+          _frazioni =
+              await _apiService.getFrazioniTemporaliTyped(student.id);
+          if (_frazioni.isNotEmpty) {
+            _selectedFrazione = _frazioni.firstWhere(
+              (f) => f.corrente,
+              orElse: () => _frazioni.last,
+            );
+          }
         }
 
-        final materieVoti = await _apiService.getMaterieConVoti(student.id);
-        setState(() {
-          _materieVoti = materieVoti;
-        });
+        _frazioneId = _selectedFrazione?.id;
+
+        final materieVoti = await _apiService.getMaterieConVoti(
+          student.id,
+          frazioneId: _frazioneId,
+        );
+
+        final prefs = await SharedPreferences.getInstance();
+        final streakService = GradeStreakService(prefs);
+
+        final update =
+            await streakService.checkAndUpdateStreak(student.id, materieVoti);
+
+        if (mounted) {
+          setState(() {
+            _materieVoti = materieVoti;
+            if (update != null) {
+              _currentStreak = update.newStreak;
+            }
+          });
+
+          if (update != null && update.didIncrease) {
+            _showStreakAnimation(update.newStreak);
+          }
+        }
       }
     } catch (e) {
       if (mounted) {
@@ -56,8 +99,18 @@ class _VotiScreenState extends State<VotiScreen> {
         );
       }
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
     }
+  }
+
+  void _showStreakAnimation(int newStreak) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => StreakLevelUpDialog(streak: newStreak),
+    );
   }
 
   double? _calcolaMediaGenerale() {
@@ -101,12 +154,42 @@ class _VotiScreenState extends State<VotiScreen> {
     final allVoti = _materieVoti.expand((m) => m.voti).toList();
     allVoti.sort((a, b) => b.data.compareTo(a.data));
 
-    return RefreshIndicator(
-      onRefresh: _loadVoti,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+    return SafeArea(
+      bottom: false,
+      child: RefreshIndicator(
+        onRefresh: _loadVoti,
+        child: ListView(
+          padding: EdgeInsets.fromLTRB(16, 16, 16, 80 + MediaQuery.paddingOf(context).bottom),
         children: [
-          // Summary Card with Chart
+
+          if (_frazioni.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: Material(
+                color: Colors.transparent,
+                child: Row(
+                  spacing: 8,
+                  children: _frazioni.map((frazione) {
+                    final isSelected =
+                        _selectedFrazione?.id == frazione.id;
+                    return ChoiceChip(
+                      label: Text(frazione.nome),
+                      selected: isSelected,
+                      onSelected: (_) async {
+                        if (!isSelected) {
+                          setState(() => _selectedFrazione = frazione);
+                          await _loadVoti();
+                        }
+                      },
+                    );
+                  }).toList(),
+                ),
+              ),
+            ),
+            ),
+
           Container(
             padding: const EdgeInsets.all(20),
             margin: const EdgeInsets.only(bottom: 20),
@@ -155,20 +238,42 @@ class _VotiScreenState extends State<VotiScreen> {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 24),
+
                     Container(
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         color: Colors.white.withOpacity(0.2),
                         borderRadius: BorderRadius.circular(16),
                       ),
-                      child: const Icon(
-                        Icons.analytics_outlined,
-                        color: Colors.white,
-                        size: 32,
+                      child: Row(
+                        children: [
+                          Icon(
+                            _currentStreak > 0
+                                ? Icons.local_fire_department
+                                : Icons.analytics_outlined,
+                            color: _currentStreak > 0
+                                ? Colors.orangeAccent
+                                : Colors.white,
+                            size: 32,
+                          ),
+                          if (_currentStreak > 0) ...[
+                            const SizedBox(width: 8),
+                            Text(
+                              '$_currentStreak',
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 20,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ],
                       ),
                     ),
                   ],
                 ),
+
                 const SizedBox(height: 24),
                 SizedBox(
                   height: 120,
@@ -208,12 +313,11 @@ class _VotiScreenState extends State<VotiScreen> {
             ),
           ),
 
-          // Subject Grid
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             padding: EdgeInsets.zero,
-            cacheExtent: 500, // Preload items for smooth scroll
+            cacheExtent: 500,
             gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
               crossAxisCount: 2,
               childAspectRatio: 0.85,
@@ -230,7 +334,17 @@ class _VotiScreenState extends State<VotiScreen> {
                   ? UiUtils.getVotoColor(media.toString())
                   : Colors.grey;
 
-              return RepaintBoundary(
+              final delay = (index * 60).clamp(0, 480);
+              return TweenAnimationBuilder<double>(
+                key: ValueKey(materiaVoti.id),
+                duration: Duration(milliseconds: 400 + delay),
+                tween: Tween(begin: 0.0, end: 1.0),
+                curve: Curves.easeOutCubic,
+                builder: (context, value, child) => Transform.translate(
+                  offset: Offset(0, 24 * (1 - value)),
+                  child: Opacity(opacity: value, child: child),
+                ),
+                child: RepaintBoundary(
                 child: Hero(
                   tag: 'subject_${materiaVoti.id}',
                   child: Material(
@@ -385,11 +499,13 @@ class _VotiScreenState extends State<VotiScreen> {
                     ),
                   ),
                 ),
-              );
+              ),
+            );
             },
           ),
         ],
       ),
-    );
+    ),
+  );
   }
 }

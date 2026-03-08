@@ -1,8 +1,7 @@
-/// Modello per una nota disciplinare
 class Nota {
   final int id;
   final DateTime data;
-  final String tipo; // 'nota', 'richiamo', 'sospensione'
+  final String tipo;
   final String descrizione;
   final String? docente;
   final String? materia;

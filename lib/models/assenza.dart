@@ -1,8 +1,7 @@
-/// Modello per un'assenza
 class Assenza {
   final int id;
   final DateTime data;
-  final String tipo; // 'assenza', 'ritardo', 'uscita'
+  final String tipo;
   final bool giustificata;
   final String? motivazione;
   final DateTime? dataGiustificazione;

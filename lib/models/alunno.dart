@@ -1,4 +1,3 @@
-/// Modello per rappresentare uno studente
 class Alunno {
   final int id;
   final String nome;
@@ -21,7 +20,7 @@ class Alunno {
   String get nomeCompleto => '$nome $cognome';
 
   factory Alunno.fromJson(Map<String, dynamic> json) {
-    // Handle id field - could be int or string, and might be null
+
     int parsedId = 0;
     if (json['id'] != null) {
       if (json['id'] is int) {

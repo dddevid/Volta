@@ -11,7 +11,6 @@ import 'core/constants.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Initialize Italian locale for date formatting
   await initializeDateFormatting('it_IT', null);
   runApp(const NuvolaApp());
 }
@@ -21,7 +20,6 @@ class NuvolaApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Crea una singola istanza di ApiClient
     final apiClient = ApiClient();
 
     return MultiProvider(
@@ -55,6 +53,12 @@ class NuvolaApp extends StatelessWidget {
                 foregroundColor: Colors.white,
                 centerTitle: true,
                 elevation: 0,
+              ),
+              pageTransitionsTheme: const PageTransitionsTheme(
+                builders: {
+                  TargetPlatform.iOS: CupertinoPageTransitionsBuilder(),
+                  TargetPlatform.android: FadeUpwardsPageTransitionsBuilder(),
+                },
               ),
               textTheme: GoogleFonts.interTextTheme(
                 const TextTheme(
@@ -115,7 +119,6 @@ class NuvolaApp extends StatelessWidget {
   }
 }
 
-/// Splash screen per verificare lo stato di autenticazione
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -123,11 +126,40 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _scaleAnim;
+  late final Animation<double> _fadeAnim;
+  late final Animation<double> _titleFadeAnim;
+
   @override
   void initState() {
     super.initState();
-    _checkAuth();
+    _controller = AnimationController(
+      duration: const Duration(milliseconds: 1200),
+      vsync: this,
+    );
+    _scaleAnim = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.0, 0.6, curve: Curves.elasticOut),
+    );
+    _fadeAnim = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.0, 0.4, curve: Curves.easeIn),
+    );
+    _titleFadeAnim = CurvedAnimation(
+      parent: _controller,
+      curve: const Interval(0.4, 0.8, curve: Curves.easeOut),
+    );
+    _controller.forward();
+    WidgetsBinding.instance.addPostFrameCallback((_) => _checkAuth());
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
   }
 
   Future<void> _checkAuth() async {
@@ -136,9 +168,15 @@ class _SplashScreenState extends State<SplashScreen> {
 
     if (mounted) {
       Navigator.of(context).pushReplacement(
-        MaterialPageRoute(
-          builder: (_) =>
+        PageRouteBuilder(
+          pageBuilder: (_, animation, __) =>
               isAuthenticated ? const HomeScreen() : const LoginScreen(),
+          transitionsBuilder: (_, animation, __, child) => FadeTransition(
+            opacity: CurvedAnimation(
+                parent: animation, curve: Curves.easeInOut),
+            child: child,
+          ),
+          transitionDuration: const Duration(milliseconds: 500),
         ),
       );
     }
@@ -152,23 +190,65 @@ class _SplashScreenState extends State<SplashScreen> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(
-              Icons.school,
-              size: 100,
-              color: Colors.white,
-            ),
-            const SizedBox(height: 24),
-            Text(
-              AppConstants.appName,
-              style: TextStyle(
-                fontSize: 32,
-                fontWeight: FontWeight.bold,
-                color: Colors.white,
+            FadeTransition(
+              opacity: _fadeAnim,
+              child: ScaleTransition(
+                scale: _scaleAnim,
+                child: Container(
+                  width: 120,
+                  height: 120,
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.15),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                        color: Colors.white.withOpacity(0.3), width: 2),
+                  ),
+                  child: const Icon(
+                    Icons.school_rounded,
+                    size: 64,
+                    color: Colors.white,
+                  ),
+                ),
               ),
             ),
-            const SizedBox(height: 40),
-            const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+            const SizedBox(height: 28),
+            FadeTransition(
+              opacity: _titleFadeAnim,
+              child: Column(
+                children: [
+                  Text(
+                    AppConstants.appName,
+                    style: const TextStyle(
+                      fontSize: 36,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Registro Elettronico',
+                    style: TextStyle(
+                      fontSize: 15,
+                      color: Colors.white.withOpacity(0.75),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 56),
+            FadeTransition(
+              opacity: _titleFadeAnim,
+              child: SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.5,
+                  valueColor:
+                      AlwaysStoppedAnimation<Color>(Colors.white.withOpacity(0.8)),
+                ),
+              ),
             ),
           ],
         ),

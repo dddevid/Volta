@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'api_client.dart';
 import '../constants.dart';
 import '../../models/alunno.dart';
@@ -7,20 +8,19 @@ import '../../models/nota.dart';
 import '../../models/compito.dart';
 import '../../models/materia_voti.dart';
 import '../../models/voto_dettagliato.dart';
+import '../../models/frazione_temporale.dart';
 
-/// Servizio per tutte le chiamate API di Nuvola
 class NuvolaApiService {
   final ApiClient _apiClient;
 
   NuvolaApiService(this._apiClient);
 
-  /// Ottiene la lista di studenti
   Future<List<Alunno>> getAlunni() async {
     try {
       final response = await _apiClient.get(AppConstants.apiAlunni);
 
       if (response.statusCode == 200 && response.data != null) {
-        // Handle response structure with 'valori' field
+
         List<dynamic> data;
         if (response.data is List) {
           data = response.data as List;
@@ -48,7 +48,6 @@ class NuvolaApiService {
     }
   }
 
-  /// Ottiene il conteggio delle notifiche
   Future<int> getNotificheCount(int alunnoId) async {
     try {
       final path = AppConstants.apiNotificheCount
@@ -68,58 +67,49 @@ class NuvolaApiService {
     }
   }
 
-  /// Ottiene i voti raggruppati per materia, comprensivi di media
-  Future<List<MateriaVoti>> getMaterieConVoti(int alunnoId) async {
+  Future<List<MateriaVoti>> getMaterieConVoti(int alunnoId,
+      {int? frazioneId}) async {
     try {
-      // Step 1: Get frazioni temporali (periods)
-      final frazioniResponse = await getFrazioniTemporali(alunnoId);
-
-      if (frazioniResponse.isEmpty) {
-        print('Nessuna frazione temporale trovata');
-        return [];
+      int resolvedFrazioneId;
+      if (frazioneId != null) {
+        resolvedFrazioneId = frazioneId;
+      } else {
+        final frazioni = await getFrazioniTemporaliTyped(alunnoId);
+        if (frazioni.isEmpty) {
+          return [];
+        }
+        resolvedFrazioneId = (frazioni.firstWhere(
+          (f) => f.corrente,
+          orElse: () => frazioni.last,
+        )).id;
       }
 
-      // Get the latest period
-      final currentFrazione = frazioniResponse.last;
-      final frazioneId = currentFrazione['id'] as int;
+      final votiMaterieResponse =
+          await getVotiMaterie(alunnoId, resolvedFrazioneId);
 
-      print('Using frazione ID: $frazioneId');
-
-      // Step 2: Get voti for materie
-      final votiMaterieResponse = await getVotiMaterie(alunnoId, frazioneId);
-
-      // Convert to MateriaVoti objects
       return votiMaterieResponse
-          .map((materiaJson) =>
-              MateriaVoti.fromJson(materiaJson as Map<String, dynamic>))
+          .map((materiaJson) => MateriaVoti.fromJson(materiaJson))
           .toList();
     } catch (e) {
-      print('Errore caricamento voti per materia: $e');
+      debugPrint('[NuvolaApi] getMaterieConVoti error: ${e.runtimeType}');
       return [];
     }
   }
 
-  /// Ottiene i voti dello studente
   Future<List<Voto>> getVoti(int alunnoId, {int? limit}) async {
     try {
-      // Step 1: Get frazioni temporali (periods)
+
       final frazioniResponse = await getFrazioniTemporali(alunnoId);
 
       if (frazioniResponse.isEmpty) {
-        print('Nessuna frazione temporale trovata');
         return [];
       }
 
-      // Get the latest period
       final currentFrazione = frazioniResponse.last;
       final frazioneId = currentFrazione['id'] as int;
 
-      print('Using frazione ID: $frazioneId');
-
-      // Step 2: Get voti for materie
       final votiMaterieResponse = await getVotiMaterie(alunnoId, frazioneId);
 
-      // Convert to Voto objects
       List<Voto> allVoti = [];
       for (var materia in votiMaterieResponse) {
         final materiaNome = materia['materia'] as String? ?? 'Sconosciuta';
@@ -128,11 +118,10 @@ class NuvolaApiService {
         for (var votoJson in votiList) {
           if (votoJson is Map<String, dynamic>) {
             try {
-              // Create Voto object, injecting the subject name
+
               final Map<String, dynamic> fullJson = Map.from(votoJson);
               fullJson['materia'] = materiaNome;
 
-              // Generate a unique ID if missing (hash of data + subject + value)
               if (fullJson['id'] == null) {
                 fullJson['id'] = (materiaNome +
                         (fullJson['data'] ?? '') +
@@ -142,28 +131,25 @@ class NuvolaApiService {
 
               allVoti.add(Voto.fromJson(fullJson));
             } catch (e) {
-              print('Error parsing voto: $e');
+              debugPrint('[NuvolaApi] error parsing voto: ${e.runtimeType}');
             }
           }
         }
       }
 
-      // Sort by date descending
       allVoti.sort((a, b) => b.data.compareTo(a.data));
 
-      // Apply limit
       if (limit != null && allVoti.length > limit) {
         return allVoti.sublist(0, limit);
       }
 
       return allVoti;
     } catch (e) {
-      print('Errore caricamento voti: $e');
+      debugPrint('[NuvolaApi] getVoti error: ${e.runtimeType}');
       return [];
     }
   }
 
-  /// Ottiene i voti dettagliati per una specifica materia
   Future<MateriaDettagliata?> getVotiMateriaDettagliati(
       int alunnoId, int frazioneId, int materiaId) async {
     try {
@@ -185,12 +171,11 @@ class NuvolaApiService {
 
       return null;
     } catch (e) {
-      print('Errore caricamento dettagli materia: $e');
+      debugPrint('[NuvolaApi] getVotiMateriaDettagliati error: ${e.runtimeType}');
       return null;
     }
   }
 
-  /// Ottiene le assenze dello studente
   Future<List<Assenza>> getAssenze(int alunnoId, {int? limit}) async {
     try {
       final path =
@@ -204,7 +189,7 @@ class NuvolaApiService {
       );
 
       if (response.statusCode == 200 && response.data != null) {
-        // Handle response structure with 'valori' field
+
         List<dynamic> data = [];
         if (response.data is Map<String, dynamic>) {
           final responseMap = response.data as Map<String, dynamic>;
@@ -222,12 +207,11 @@ class NuvolaApiService {
 
       return [];
     } catch (e) {
-      print('Errore caricamento assenze: $e');
+      debugPrint('[NuvolaApi] getAssenze error: ${e.runtimeType}');
       return [];
     }
   }
 
-  /// Ottiene le note disciplinari dello studente
   Future<List<Nota>> getNote(int alunnoId, {int? limit}) async {
     try {
       final path = AppConstants.apiNote.replaceAll('{id}', alunnoId.toString());
@@ -257,12 +241,11 @@ class NuvolaApiService {
 
       return [];
     } catch (e) {
-      print('Errore nel caricamento delle note: $e');
+      debugPrint('[NuvolaApi] getNote error: ${e.runtimeType}');
       return [];
     }
   }
 
-  /// Ottiene i compiti per una data specifica
   Future<List<Compito>> getCompiti(int alunnoId, DateTime date) async {
     try {
       final dateStr =
@@ -277,7 +260,7 @@ class NuvolaApiService {
       );
 
       if (response.statusCode == 200 && response.data != null) {
-        // Handle response structure with 'valori' field
+
         List<dynamic> data = [];
         if (response.data is Map<String, dynamic>) {
           final responseMap = response.data as Map<String, dynamic>;
@@ -295,12 +278,11 @@ class NuvolaApiService {
 
       return [];
     } catch (e) {
-      print('Errore caricamento compiti: $e');
+      debugPrint('[NuvolaApi] getCompiti error: ${e.runtimeType}');
       return [];
     }
   }
 
-  /// Ottiene le frazioni temporali (periodi/quadrimestri)
   Future<List<Map<String, dynamic>>> getFrazioniTemporali(int alunnoId) async {
     try {
       final path = AppConstants.apiFrazioniTemporali
@@ -310,34 +292,31 @@ class NuvolaApiService {
         queryParameters: {'contextAlunno': alunnoId},
       );
 
-      print('[FRAZIONI] Response: ${response.data}');
-
       if (response.statusCode == 200 && response.data != null) {
-        // Handle valori structure if present
         if (response.data is Map<String, dynamic>) {
           final data = response.data as Map<String, dynamic>;
           if (data.containsKey('valori')) {
-            print(
-                '[FRAZIONI] Found ${(data['valori'] as List).length} periods');
             return List<Map<String, dynamic>>.from(data['valori'] as List);
           }
         }
         if (response.data is List) {
-          print(
-              '[FRAZIONI] Found ${(response.data as List).length} periods (direct list)');
           return List<Map<String, dynamic>>.from(response.data as List);
         }
       }
 
-      print('[FRAZIONI] No periods found');
       return [];
     } catch (e) {
-      print('Errore caricamento periodi: $e');
+      debugPrint('[NuvolaApi] getFrazioniTemporali error: ${e.runtimeType}');
       return [];
     }
   }
 
-  /// Ottiene i voti per materia di un periodo specifico
+  Future<List<FrazioneTemporale>> getFrazioniTemporaliTyped(
+      int alunnoId) async {
+    final raw = await getFrazioniTemporali(alunnoId);
+    return raw.map((json) => FrazioneTemporale.fromJson(json)).toList();
+  }
+
   Future<List<Map<String, dynamic>>> getVotiMaterie(
       int alunnoId, int frazioneId) async {
     try {
@@ -364,7 +343,7 @@ class NuvolaApiService {
 
       return [];
     } catch (e) {
-      print('Errore caricamento voti materie: $e');
+      debugPrint('[NuvolaApi] getVotiMaterie error: ${e.runtimeType}');
       return [];
     }
   }

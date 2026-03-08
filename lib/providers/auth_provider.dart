@@ -3,7 +3,6 @@ import '../core/api/api_client.dart';
 import '../core/api/auth_service.dart';
 import '../models/alunno.dart';
 
-/// Provider per la gestione dell'autenticazione
 class AuthProvider with ChangeNotifier {
   final AuthService _authService;
 
@@ -19,7 +18,6 @@ class AuthProvider with ChangeNotifier {
   Alunno? get currentStudent => _authService.currentStudent;
   AuthService get authService => _authService;
 
-  /// Effettua il login
   Future<bool> login(String username, String password,
       {bool rememberMe = false}) async {
     _isLoading = true;
@@ -48,7 +46,6 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  /// Verifica lo stato di autenticazione
   Future<bool> checkAuthStatus() async {
     _isLoading = true;
     notifyListeners();
@@ -69,12 +66,10 @@ class AuthProvider with ChangeNotifier {
     }
   }
 
-  /// Carica le credenziali salvate
   Future<Map<String, String?>> loadSavedCredentials() async {
     return await _authService.loadSavedCredentials();
   }
 
-  /// Effettua il logout
   Future<void> logout() async {
     await _authService.logout();
     _isAuthenticated = false;
@@ -82,7 +77,6 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
-  /// Pulisce il messaggio di errore
   void clearError() {
     _errorMessage = null;
     notifyListeners();

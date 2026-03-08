@@ -1,4 +1,3 @@
-/// Modello per un compito
 class Compito {
   final int id;
   final String materia;
@@ -7,7 +6,7 @@ class Compito {
   final String descrizione;
   final String? docente;
   final List<String>? allegati;
-  bool completato; // Solo locale, non sincronizzato
+  bool completato;
 
   Compito({
     required this.id,
@@ -21,7 +20,7 @@ class Compito {
   });
 
   factory Compito.fromJson(Map<String, dynamic> json) {
-    // Handle description which comes as a List of strings in Nuvola API
+
     String desc = '';
     if (json['descrizioneCompito'] != null) {
       if (json['descrizioneCompito'] is List) {
@@ -33,7 +32,6 @@ class Compito {
       desc = json['descrizione'] as String;
     }
 
-    // Generate ID if missing (hash of content) since Nuvola API doesn't provide ID for homework
     int id = json['id'] as int? ??
         (json['materia'].toString() +
                 json['dataAssegnazione'].toString() +

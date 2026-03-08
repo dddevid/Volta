@@ -14,21 +14,20 @@ class ThemeProvider with ChangeNotifier {
 
   Future<void> _initHighRefreshRate() async {
     try {
-      // Get available modes
+
       final List<DisplayMode> modes = await FlutterDisplayMode.supported;
 
-      // Find the mode with highest refresh rate
       DisplayMode? preferred = modes.isNotEmpty
           ? modes.reduce((a, b) => a.refreshRate > b.refreshRate ? a : b)
           : null;
 
       if (preferred != null) {
         await FlutterDisplayMode.setPreferredMode(preferred);
-        print('Set display mode to ${preferred.refreshRate}Hz');
+        debugPrint('[ThemeProvider] display mode set to ${preferred.refreshRate}Hz');
       }
     } catch (e) {
-      // Ignore errors on platforms that don't support this
-      print('Could not set high refresh rate: $e');
+
+      debugPrint('[ThemeProvider] could not set high refresh rate: ${e.runtimeType}');
     }
   }
 

@@ -4,7 +4,6 @@ import '../providers/auth_provider.dart';
 import '../core/api/nuvola_api_service.dart';
 import '../models/assenza.dart';
 
-/// Schermata assenze
 class AssenzeScreen extends StatefulWidget {
   const AssenzeScreen({super.key});
 
@@ -16,7 +15,7 @@ class _AssenzeScreenState extends State<AssenzeScreen> {
   late final NuvolaApiService _apiService;
   bool _isLoading = true;
   List<Assenza> _assenze = [];
-  String _filterType = 'tutte'; // 'tutte', 'assenza', 'ritardo', 'uscita'
+  String _filterType = 'tutte';
 
   @override
   void initState() {
@@ -95,9 +94,11 @@ class _AssenzeScreenState extends State<AssenzeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Stats cards
+    return SafeArea(
+      bottom: false,
+      child: Column(
+        children: [
+
         if (!_isLoading)
           Padding(
             padding: const EdgeInsets.all(16),
@@ -121,12 +122,13 @@ class _AssenzeScreenState extends State<AssenzeScreen> {
             ),
           ),
 
-        // Filter chips
         if (!_isLoading)
           Container(
             height: 50,
             margin: const EdgeInsets.only(bottom: 8),
-            child: ListView(
+            child: Material(
+              color: Colors.transparent,
+              child: ListView(
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 16),
               children: [
@@ -139,13 +141,14 @@ class _AssenzeScreenState extends State<AssenzeScreen> {
                 _buildFilterChip('Uscite', 'uscita'),
               ],
             ),
+            ),
           ),
 
-        // List
         Expanded(
           child: _buildContent(),
         ),
       ],
+      ),
     );
   }
 
@@ -249,13 +252,23 @@ class _AssenzeScreenState extends State<AssenzeScreen> {
     return RefreshIndicator(
       onRefresh: _loadAssenze,
       child: ListView.builder(
-        padding: const EdgeInsets.fromLTRB(16, 16, 16, 80),
+        padding: EdgeInsets.fromLTRB(16, 16, 16, 80 + MediaQuery.paddingOf(context).bottom),
         itemCount: _assenzeFiltered.length,
         itemBuilder: (context, index) {
           final assenza = _assenzeFiltered[index];
           final color = _getColorForType(assenza.tipo);
 
-          return Container(
+          return TweenAnimationBuilder<double>(
+            duration: Duration(milliseconds: 300 + (index * 40).clamp(0, 400)),
+            curve: Curves.easeOutCubic,
+            tween: Tween(begin: 0.0, end: 1.0),
+            builder: (context, value, child) => Transform.translate(
+              offset: Offset(0, 20 * (1 - value)),
+              child: Opacity(opacity: value, child: child),
+            ),
+            child: Material(
+            color: Colors.transparent,
+            child: Container(
             margin: const EdgeInsets.only(bottom: 12),
             decoration: BoxDecoration(
               color: Theme.of(context).cardTheme.color ??
@@ -367,6 +380,8 @@ class _AssenzeScreenState extends State<AssenzeScreen> {
                   ),
                 ),
               ),
+              ),
+            ),
             ),
           );
         },

@@ -1,15 +1,11 @@
-/// Costanti dell'applicazione Nuvola
 class AppConstants {
-  // API Base URL
   static const String baseUrl = 'https://nuvola.madisoft.it';
 
-  // API Endpoints
   static const String loginPage = '/login';
   static const String loginCheck = '/login_check';
   static const String salvaRuolo = '/salva-ruolo';
   static const String apiLoginFromWeb = '/api-studente/v1/login-from-web';
 
-  // API Student Endpoints
   static const String apiAlunni = '/api-studente/v1/alunni';
   static const String apiMenu = '/api-studente/v1/alunno/{id}/menu';
   static const String apiNotificheCount =
@@ -34,29 +30,24 @@ class AppConstants {
       '/api-studente/v1/alunno/{id}/frazione-temporale/{frazioneId}/voti/materie';
   static const String apiPagamenti = '/api-studente/v1/alunno/{id}/pagamenti';
 
-  // Storage Keys
   static const String storageKeyJwtToken = 'jwt_token';
   static const String storageKeyUsername = 'username';
   static const String storageKeyPassword = 'password';
   static const String storageKeyRememberMe = 'remember_me';
   static const String storageKeySelectedStudent = 'selected_student_id';
 
-  // Timeouts
   static const Duration connectionTimeout = Duration(seconds: 30);
   static const Duration receiveTimeout = Duration(seconds: 30);
 
-  // JWT Token expiry (30 minutes from API)
   static const Duration tokenExpiryDuration =
-      Duration(minutes: 28); // Refresh before actual expiry
+      Duration(minutes: 28);
 
-  // Colors
-  static const int primaryColorValue = 0xFF0066CC; // ClasseViva Blue
-  static const int secondaryColorValue = 0xFFFF9800; // Orange
-  static const int successColorValue = 0xFF4CAF50; // Green
-  static const int errorColorValue = 0xFFF44336; // Red
-  static const int scaffoldBackgroundColor = 0xFFF5F5F5; // Light Grey
+  static const int primaryColorValue = 0xFF0066CC;
+  static const int secondaryColorValue = 0xFFFF9800;
+  static const int successColorValue = 0xFF4CAF50;
+  static const int errorColorValue = 0xFFF44336;
+  static const int scaffoldBackgroundColor = 0xFFF5F5F5;
 
-  // App Info
-  static const String appName = 'Nuvola Client';
+  static const String appName = 'Volta';
   static const String appVersion = '1.0.0';
 }

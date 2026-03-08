@@ -20,9 +20,9 @@ class MateriaVoti {
     if (json['voti'] != null) {
       votiList = (json['voti'] as List).map((v) {
         final votoJson = v as Map<String, dynamic>;
-        // Inject materia into each voto
+
         votoJson['materia'] = json['materia'] as String? ?? '';
-        // Nuvola API doesn't provide a unique ID for each grade, so we create one.
+
         if (votoJson['id'] == null) {
           votoJson['id'] = (json['materia'].toString() +
                   (votoJson['data'] ?? '') +

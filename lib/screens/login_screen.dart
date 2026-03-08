@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:url_launcher/url_launcher.dart';
 import '../providers/auth_provider.dart';
 import 'home_screen.dart';
+import 'pdf_viewer_screen.dart';
+import 'privacy_policy_screen.dart';
 
-/// Schermata di login
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -22,6 +24,13 @@ class _LoginScreenState extends State<LoginScreen> {
   void initState() {
     super.initState();
     _loadSavedCredentials();
+  }
+
+  Future<void> _launchUrl(String url) async {
+    final uri = Uri.parse(url);
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
   }
 
   Future<void> _loadSavedCredentials() async {
@@ -74,7 +83,7 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Logo/Icon
+
                 Container(
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
@@ -97,7 +106,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 24),
 
                 Text(
-                  'Nuvola Client',
+                  'Volta',
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 32,
@@ -139,7 +148,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               const SizedBox(height: 32),
 
-                              // Username field
                               TextFormField(
                                 controller: _usernameController,
                                 decoration: InputDecoration(
@@ -165,7 +173,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               const SizedBox(height: 16),
 
-                              // Password field
                               TextFormField(
                                 controller: _passwordController,
                                 decoration: InputDecoration(
@@ -204,7 +211,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               const SizedBox(height: 8),
 
-                              // Remember me checkbox
                               Row(
                                 children: [
                                   Checkbox(
@@ -223,7 +229,6 @@ class _LoginScreenState extends State<LoginScreen> {
                               ),
                               const SizedBox(height: 24),
 
-                              // Error message
                               if (authProvider.errorMessage != null) ...[
                                 Container(
                                   padding: const EdgeInsets.all(12),
@@ -256,7 +261,6 @@ class _LoginScreenState extends State<LoginScreen> {
                                 const SizedBox(height: 16),
                               ],
 
-                              // Login button
                               FilledButton(
                                 onPressed:
                                     authProvider.isLoading ? null : _login,
@@ -300,6 +304,95 @@ class _LoginScreenState extends State<LoginScreen> {
                     color: Colors.white.withOpacity(0.6),
                     fontSize: 12,
                   ),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    TextButton(
+                      onPressed: () => _launchUrl(
+                          'https://nuvola.madisoft.it/privacy-policy'),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        'Privacy Nuvola',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.55),
+                          fontSize: 11,
+                          decoration: TextDecoration.underline,
+                          decorationColor: Colors.white.withOpacity(0.55),
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '·',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.4),
+                        fontSize: 11,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const PrivacyPolicyScreen(),
+                        ),
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        'Privacy Volta',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.55),
+                          fontSize: 11,
+                          decoration: TextDecoration.underline,
+                          decorationColor: Colors.white.withOpacity(0.55),
+                        ),
+                      ),
+                    ),
+                    Text(
+                      '·',
+                      style: TextStyle(
+                        color: Colors.white.withOpacity(0.4),
+                        fontSize: 11,
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const PdfViewerScreen(
+                            title: 'Termini di Servizio Nuvola',
+                            url:
+                                'https://madisoft.it/wp-content/uploads/2025/05/Policy-sicurezza-Portale-Nuvola.pdf',
+                          ),
+                        ),
+                      ),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        minimumSize: Size.zero,
+                        tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      ),
+                      child: Text(
+                        'Termini Nuvola',
+                        style: TextStyle(
+                          color: Colors.white.withOpacity(0.55),
+                          fontSize: 11,
+                          decoration: TextDecoration.underline,
+                          decorationColor: Colors.white.withOpacity(0.55),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),

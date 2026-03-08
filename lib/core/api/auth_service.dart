@@ -1,11 +1,11 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:html/parser.dart' as html_parser;
 import 'api_client.dart';
 import '../constants.dart';
 import '../../models/alunno.dart';
 
-/// Servizio di autenticazione per Nuvola
 class AuthService {
   final ApiClient _apiClient;
   final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
@@ -15,34 +15,27 @@ class AuthService {
 
   AuthService(this._apiClient);
 
-  /// Ottiene lo studente corrente
   Alunno? get currentStudent => _currentStudent;
 
-  /// Ottiene l'API client autenticato
   ApiClient get apiClient => _apiClient;
 
-  /// Verifica se l'utente è autenticato
   bool get isAuthenticated => _currentStudent != null && !_isTokenExpired();
 
-  /// Verifica se il token è scaduto
   bool _isTokenExpired() {
     if (_tokenExpiry == null) return true;
     return DateTime.now().isAfter(_tokenExpiry!);
   }
 
-  /// Login con username e password
   Future<bool> login(String username, String password,
       {bool rememberMe = false}) async {
     try {
-      print('[AUTH] Step 1: Getting CSRF token...');
-      // Step 1: GET /login to get CSRF token
+      debugPrint('[AUTH] Step 1: getting CSRF token');
       final loginPageResponse = await _apiClient.get(AppConstants.loginPage);
 
       if (loginPageResponse.statusCode != 200) {
         throw Exception('Impossibile caricare la pagina di login');
       }
 
-      // Parse HTML to extract CSRF token
       final document = html_parser.parse(loginPageResponse.data);
       final csrfInput = document.querySelector('input[name="_csrf_token"]');
 
@@ -56,8 +49,8 @@ class AuthService {
         throw Exception('CSRF token non valido');
       }
 
-      print('[AUTH] Step 2: Logging in with credentials...');
-      // Step 2: POST /login_check with credentials
+      debugPrint('[AUTH] Step 2: logging in');
+
       final loginData = {
         '_csrf_token': csrfToken,
         '_username': username,
@@ -74,26 +67,20 @@ class AuthService {
         ),
       );
 
-      // Check if login was successful (should redirect)
       if (loginResponse.statusCode != 302 && loginResponse.statusCode != 200) {
         throw Exception('Credenziali non valide');
       }
 
-      print('[AUTH] Step 3: Accessing student area...');
-      // Step 3: Access student area to establish session
+      debugPrint('[AUTH] Step 3: accessing student area');
       await _apiClient.get('/area-studente');
 
-      print('[AUTH] Step 4: Getting JWT token...');
-      // Step 4: Get JWT token from API
+      debugPrint('[AUTH] Step 4: getting JWT token');
       final jwtResponse = await _apiClient.get(AppConstants.apiLoginFromWeb);
 
       if (jwtResponse.statusCode != 200 || jwtResponse.data == null) {
-        print('[AUTH] JWT Response status: ${jwtResponse.statusCode}');
-        print('[AUTH] JWT Response data: ${jwtResponse.data}');
         throw Exception('Impossibile ottenere il token di autenticazione');
       }
 
-      // Parse JWT - could be a string directly or an object with 'token' field
       String? jwtToken;
       if (jwtResponse.data is String) {
         jwtToken = jwtResponse.data as String;
@@ -108,35 +95,29 @@ class AuthService {
         throw Exception('Token JWT non valido');
       }
 
-      print('[AUTH] JWT token obtained successfully');
-      // Set JWT token in API client
+      debugPrint('[AUTH] JWT token obtained successfully');
+
       _apiClient.setJwtToken(jwtToken);
       _tokenExpiry = DateTime.now().add(AppConstants.tokenExpiryDuration);
 
-      print('[AUTH] Step 5: Getting student list...');
-      // Step 5: Now get available roles/students with JWT token
+      debugPrint('[AUTH] Step 5: getting student list');
+
       final studentsResponse = await _apiClient.get('/api-studente/v1/alunni');
 
       if (studentsResponse.statusCode != 200 || studentsResponse.data == null) {
-        print(
-            '[AUTH] Students Response status: ${studentsResponse.statusCode}');
-        print('[AUTH] Students Response data: ${studentsResponse.data}');
         throw Exception('Impossibile ottenere la lista studenti');
       }
 
-      // Parse response - Nuvola API returns object with 'valori' array
       List<dynamic> studentsData;
       if (studentsResponse.data is List) {
         studentsData = studentsResponse.data as List;
       } else if (studentsResponse.data is Map<String, dynamic>) {
         final responseMap = studentsResponse.data as Map<String, dynamic>;
-        // Nuvola API uses 'valori' field for data array
         if (responseMap.containsKey('valori')) {
           studentsData = responseMap['valori'] as List;
         } else if (responseMap.containsKey('data')) {
           studentsData = responseMap['data'] as List;
         } else {
-          // Single student returned as object
           studentsData = [responseMap];
         }
       } else {
@@ -147,26 +128,21 @@ class AuthService {
         throw Exception('Nessuno studente associato a questo account');
       }
 
-      print('[AUTH] Found ${studentsData.length} student(s)');
-      // Get first student (or we could let user choose)
+      debugPrint('[AUTH] Found ${studentsData.length} student(s)');
+
       final studentJson = studentsData.first as Map<String, dynamic>;
-      print('[AUTH] Student JSON: $studentJson');
       _currentStudent = Alunno.fromJson(studentJson);
 
-      print('[AUTH] Student selected: ${_currentStudent!.nomeCompleto}');
-
-      // Save credentials if remember me is enabled
       if (rememberMe) {
         await _saveCredentials(username, password, jwtToken);
       } else {
         await _saveToken(jwtToken);
       }
 
-      print('[AUTH] Login successful!');
+      debugPrint('[AUTH] Login successful');
       return true;
     } on DioException catch (e) {
-      print('[AUTH] DioException: ${e.type}, ${e.message}');
-      print('[AUTH] Response: ${e.response?.statusCode} - ${e.response?.data}');
+      debugPrint('[AUTH] DioException: ${e.type}');
       if (e.response?.statusCode == 401 || e.response?.statusCode == 403) {
         throw Exception('Credenziali non valide');
       } else if (e.type == DioExceptionType.connectionTimeout ||
@@ -177,12 +153,11 @@ class AuthService {
       }
       throw Exception('Errore durante il login: ${e.message}');
     } catch (e) {
-      print('[AUTH] Exception: $e');
+      debugPrint('[AUTH] Unexpected exception: ${e.runtimeType}');
       rethrow;
     }
   }
 
-  /// Salva le credenziali in modo sicuro
   Future<void> _saveCredentials(
       String username, String password, String token) async {
     await _secureStorage.write(
@@ -195,7 +170,6 @@ class AuthService {
         key: AppConstants.storageKeyRememberMe, value: 'true');
   }
 
-  /// Salva solo il token
   Future<void> _saveToken(String token) async {
     await _secureStorage.write(
         key: AppConstants.storageKeyJwtToken, value: token);
@@ -203,7 +177,6 @@ class AuthService {
         key: AppConstants.storageKeyRememberMe, value: 'false');
   }
 
-  /// Carica le credenziali salvate
   Future<Map<String, String?>> loadSavedCredentials() async {
     final username =
         await _secureStorage.read(key: AppConstants.storageKeyUsername);
@@ -219,7 +192,6 @@ class AuthService {
     };
   }
 
-  /// Verifica lo stato di autenticazione all'avvio
   Future<bool> checkAuthStatus() async {
     try {
       final token =
@@ -229,10 +201,8 @@ class AuthService {
         return false;
       }
 
-      // Set token in API client
       _apiClient.setJwtToken(token);
 
-      // Try to get student list to verify token is still valid
       final studentsResponse = await _apiClient.get('/api-studente/v1/alunni');
 
       if (studentsResponse.statusCode == 200 && studentsResponse.data != null) {
@@ -252,13 +222,11 @@ class AuthService {
     }
   }
 
-  /// Logout
   Future<void> logout() async {
     _currentStudent = null;
     _tokenExpiry = null;
     _apiClient.clearAuth();
 
-    // Keep username if remember me was enabled, but clear password and token
     final rememberMe =
         await _secureStorage.read(key: AppConstants.storageKeyRememberMe);
 
@@ -270,10 +238,9 @@ class AuthService {
     await _secureStorage.delete(key: AppConstants.storageKeyJwtToken);
   }
 
-  /// Aggiorna il token se sta per scadere
   Future<void> refreshTokenIfNeeded() async {
     if (_isTokenExpired()) {
-      // Try to re-login with saved credentials
+
       final credentials = await loadSavedCredentials();
 
       if (credentials['username'] != null && credentials['password'] != null) {
