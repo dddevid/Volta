@@ -37,6 +37,7 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: build/ios/iphoneos/FlutterIpaExport.ipa
-          tag: v1.0
+          tag: v1.0.0-alpha
           overwrite: true
-          body: "This is first release"
+          prerelease: true
+          body: "Unsigned iOS IPA generated from manual workflow dispatch."
